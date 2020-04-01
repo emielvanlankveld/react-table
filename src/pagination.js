@@ -8,7 +8,7 @@ const defaultButton = props => (
   </button>
 )
 
-export default class TestPagination extends Component {
+export default class ReactTablePagination extends Component {
   static defaultProps = {
     PreviousComponent: defaultButton,
     NextComponent: defaultButton,
