@@ -8,24 +8,24 @@ const defaultButton = props => (
   </button>
 )
 
-export default class ReactTablePagination extends Component {
+export default class TestPagination extends Component {
   static defaultProps = {
     PreviousComponent: defaultButton,
     NextComponent: defaultButton,
     renderPageJump: ({
       onChange, value, onBlur, onKeyPress, inputType, pageJumpText,
     }) => (
-      <div className="-pageJump">
-        <input
-          aria-label={pageJumpText}
-          type={inputType}
-          onChange={onChange}
-          value={value}
-          onBlur={onBlur}
-          onKeyPress={onKeyPress}
-        />
-      </div>
-    ),
+        <div className="-pageJump">
+          <input
+            aria-label={pageJumpText}
+            type={inputType}
+            onChange={onChange}
+            value={value}
+            onBlur={onBlur}
+            onKeyPress={onKeyPress}
+          />
+        </div>
+      ),
     renderCurrentPage: page => <span className="-currentPage">{page + 1}</span>,
     renderTotalPagesCount: pages => <span className="-totalPages">{pages || 1}</span>,
     renderPageSizeOptions: ({
@@ -35,24 +35,24 @@ export default class ReactTablePagination extends Component {
       onPageSizeChange,
       rowsText,
     }) => (
-      <span className="select-wrap -pageSizeOptions">
-        <select
-          aria-label={rowsSelectorText}
-          onChange={e => onPageSizeChange(Number(e.target.value))}
-          value={pageSize}
-        >
-          {pageSizeOptions.map((option, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <option key={i} value={option}>
-              {`${option} ${rowsText}`}
-            </option>
-          ))}
-        </select>
-      </span>
-    ),
+        <span className="select-wrap -pageSizeOptions">
+          <select
+            aria-label={rowsSelectorText}
+            onChange={e => onPageSizeChange(Number(e.target.value))}
+            value={pageSize}
+          >
+            {pageSizeOptions.map((option, i) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <option key={i} value={option}>
+                {`${option} ${rowsText}`}
+              </option>
+            ))}
+          </select>
+        </span>
+      ),
   }
 
-  constructor (props) {
+  constructor(props) {
     super(props)
 
     this.getSafePage = this.getSafePage.bind(this)
@@ -60,11 +60,11 @@ export default class ReactTablePagination extends Component {
     this.applyPage = this.applyPage.bind(this)
 
     this.state = {
-      page: props.page,
+      page: props.page
     }
   }
 
-  componentDidUpdate (prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (prevProps.page !== this.props.page && prevState.page !== this.state.page) {
       // this is probably safe because we only update when old/new state.page are different
       // eslint-disable-next-line react/no-did-update-set-state
@@ -82,22 +82,51 @@ export default class ReactTablePagination extends Component {
     }
   }
 
-  getSafePage (page) {
+  getSafePage(page) {
     if (Number.isNaN(page)) {
       page = this.props.page
     }
     return Math.min(Math.max(page, 0), this.props.pages - 1)
   }
 
-  changePage (page) {
+  filterPages = (visiblePages, totalPages) => {
+    return visiblePages.filter(page => page <= totalPages);
+  }
+
+  getVisiblePages = (page, total) => {
+    if (total < 6 || page < 3) {
+      return this.filterPages([1, 2, 3, 4, 5], total)
+    } else if (page + 2 > total) {
+      return this.filterPages([total - 4, total - 3, total - 2, total - 1, total], total)
+    } else {
+      return this.filterPages([page - 2, page - 1, page, page + 1, page + 2], total)
+    }
+  }
+
+  changePage(page) {
     page = this.getSafePage(page)
     this.setState({ page })
     if (this.props.page !== page) {
+      this.setState({
+        visiblePages: this.filterPages(this.getVisiblePages(page + 1, this.props.pages), this.props.pages)
+      })
+
       this.props.onPageChange(page)
     }
   }
 
-  applyPage (e) {
+  updateCurrentRows(props) {
+    if (typeof props.sortedData !== 'undefined'  //use props.data for unfiltered (all) rows
+      && typeof props.page !== 'undefined'
+      && typeof props.pageSize !== 'undefined'
+    ) {
+      this.rowCount = props.sortedData.length  //use props.data.length for unfiltered (all) rows
+      this.rowMin = props.page * props.pageSize + 1
+      this.rowMax = Math.min((props.page + 1) * props.pageSize, this.rowCount)
+    }
+  }
+
+  applyPage(e) {
     if (e) {
       e.preventDefault()
     }
@@ -105,7 +134,7 @@ export default class ReactTablePagination extends Component {
     this.changePage(page === '' ? this.props.page : page)
   }
 
-  getPageJumpProperties () {
+  getPageJumpProperties() {
     return {
       onKeyPress: e => {
         if (e.which === 13 || e.keyCode === 13) {
@@ -127,7 +156,7 @@ export default class ReactTablePagination extends Component {
     }
   }
 
-  render () {
+  render() {
     const {
       // Computed
       pages,
@@ -149,8 +178,17 @@ export default class ReactTablePagination extends Component {
       renderPageSizeOptions,
     } = this.props
 
+    const pageNumber = this.props.page + 1
+    const visiblePages = this.getVisiblePages(this.props.page, this.props.pages)
+    this.updateCurrentRows(this.props)
+
     return (
       <div className={classnames(className, '-pagination')} style={this.props.style}>
+        {this.rowCount && (
+          <div className="-summary">
+            Showing {this.rowMin} - {this.rowMax} of {this.rowCount} results
+          </div>
+        )}
         <div className="-previous">
           <PreviousComponent
             onClick={() => {
@@ -163,18 +201,16 @@ export default class ReactTablePagination extends Component {
           </PreviousComponent>
         </div>
         <div className="-center">
-          <span className="-pageInfo">
-            {this.props.pageText}{' '}
-            {showPageJump ? renderPageJump(this.getPageJumpProperties()) : renderCurrentPage(page)}{' '}
-            {this.props.ofText} {renderTotalPagesCount(pages)}
-          </span>
-          {showPageSizeOptions &&
-          renderPageSizeOptions({
-            pageSize,
-            rowsSelectorText: this.props.rowsSelectorText,
-            pageSizeOptions,
-            onPageSizeChange,
-            rowsText: this.props.rowsText,
+          {visiblePages.map((page, index, array) => {
+            return (
+              <a
+                onClick={() => this.changePage(page - 1)}
+                key={page}
+                className={pageNumber === page ? "active" : ""}
+              >
+                {array[index - 1] + 2 < page ? `... ${page}` : page}
+              </a>
+            )
           })}
         </div>
         <div className="-next">
@@ -183,7 +219,7 @@ export default class ReactTablePagination extends Component {
               if (!canNext) return
               this.changePage(page + 1)
             }}
-            disabled={!canNext || this.state.page >= this.props.pages - 1}
+            disabled={!canNext || this.state.page >= this.props.pages}
           >
             {this.props.nextText}
           </NextComponent>
