@@ -141,14 +141,10 @@ export function useGetLatest(obj) {
   return React.useCallback(() => ref.current, [])
 }
 
-// SSR has issues with useLayoutEffect still, so use useEffect during SSR
-export const safeUseLayoutEffect =
-  typeof document !== 'undefined' ? React.useLayoutEffect : React.useEffect
-
 export function useMountedLayoutEffect(fn, deps) {
   const mountedRef = React.useRef(false)
 
-  safeUseLayoutEffect(() => {
+  React.useLayoutEffect(() => {
     if (mountedRef.current) {
       fn()
     }
