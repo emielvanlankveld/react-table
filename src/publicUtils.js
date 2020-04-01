@@ -144,7 +144,7 @@ export function useGetLatest(obj) {
 export function useMountedLayoutEffect(fn, deps) {
   const mountedRef = React.useRef(false)
 
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     if (mountedRef.current) {
       fn()
     }
